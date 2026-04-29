@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TD Accesorios - Tienda</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 0; background-color: #fafafa; color: #222; }
+        header { background: #fff; padding: 25px; text-align: center; border-bottom: 1px solid #f0f0f0; position: sticky; top: 0; z-index: 100; }
+        .container { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
+        h2 { text-align: center; letter-spacing: 3px; font-weight: 200; text-transform: uppercase; margin-bottom: 40px; }
+
+        .productos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; }
+        .producto-card { background: #fff; padding: 20px; text-align: center; border: 1px solid #eee; transition: 0.3s; display: flex; flex-direction: column; justify-content: space-between; }
+        .producto-card img { width: 100%; height: 320px; object-fit: cover; margin-bottom: 15px; background-color: #f9f9f9; }
+        .producto-card h3 { font-size: 0.9em; letter-spacing: 1px; text-transform: uppercase; margin: 10px 0; min-height: 2.5em; }
+        
+        select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; font-size: 0.9em; background-color: #fff; }
+        .btn-add { background: #222; color: #fff; padding: 12px; border: none; cursor: pointer; width: 100%; text-transform: uppercase; font-size: 0.75em; letter-spacing: 1px; }
+        .btn-add:hover { background: #444; }
+
+        #carrito-btn { position: fixed; bottom: 20px; right: 20px; background: #009ee3; color: white; padding: 15px 25px; border-radius: 50px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 999; }
+
+        #modal-factura { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; overflow-y: auto; }
+        .factura-content { background: white; max-width: 480px; margin: 40px auto; padding: 30px; border-radius: 8px; position: relative; }
+        .item-factura { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f9f9f9; }
+        .total-factura { font-size: 1.4em; font-weight: bold; text-align: right; margin-top: 25px; border-top: 2px solid #222; padding-top: 10px; }
+        
+        /* Estilo para el aviso importante */
+        .aviso-instruccion { margin-top: 25px; background: #fff3cd; padding: 20px; border: 2px solid #ffeeba; border-radius: 8px; text-align: center; }
+        .aviso-instruccion p { font-size: 1.15em; font-weight: bold; margin: 0; color: #856404; line-height: 1.4; }
+
+        .resumen-pedido { background: #f8f9fa; padding: 15px; margin-top: 15px; font-size: 1em; border: 2px dashed #222; white-space: pre-line; text-align: left; font-family: monospace; color: #333; }
+        
+        .btn-insta { display: block; background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); color: white; text-align: center; padding: 18px; text-decoration: none; margin-top: 20px; font-weight: bold; border-radius: 8px; text-transform: uppercase; font-size: 1.1em; letter-spacing: 1px; }
+        .btn-cerrar { position: absolute; top: 10px; right: 15px; background: none; border: none; font-size: 2.5em; cursor: pointer; color: #aaa; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 style="font-weight: 200; letter-spacing: 5px;">TD ACCESORIOS</h1>
+</header>
+
+<div class="container">
+    <h2>Catálogo Online</h2>
+    <div class="productos-grid" id="lista-productos"></div>
+</div>
+
+<div id="carrito-btn" onclick="mostrarFactura()">🛒 Carrito (0)</div>
+
+<div id="modal-factura">
+    <div class="factura-content">
+        <button class="btn-cerrar" onclick="cerrarFactura()">&times;</button>
+        <h3 style="text-align: center; letter-spacing: 2px; font-weight: bold;">MI PEDIDO</h3>
+        
+        <div id="items-lista"></div>
+        <div class="total-factura" id="total-monto">Total: $0</div>
+
+        <div style="background: #e3f2fd; padding: 15px; margin-top: 20px; font-size: 0.9em; border-left: 5px solid #009ee3; border-radius: 4px;">
+            <strong>💳 Datos de Pago:</strong><br>
+            Alias Mercado Pago: <b>td.accesorios</b><br>
+            Titular: Delfina Gonzalez Colman
+        </div>
+
+        <div class="aviso-instruccion">
+            <p>⚠️ COPIÁ EL TEXTO DE ABAJO Y PEGALO EN EL CHAT DE INSTAGRAM</p>
+        </div>
+
+        <div id="resumen-texto" class="resumen-pedido"></div>
+
+        <a href="https://ig.me/m/tde.accesorios" target="_blank" class="btn-insta">
+            ENVIAR A INSTAGRAM
+        </a>
+        <p style="text-align:center; font-size: 0.75em; color: #777; margin-top: 10px;">
+            Hacé clic para abrir nuestro chat de Instagram.
+        </p>
+    </div>
+</div>
+
+<script>
+    // Datos de stock basados en tu planilla
+    const stockData = {
+        "Soft Pink Case": { "11": 1, "12": 3, "13/14": 3, "13 Pro": 3, "15": 2, "15 Pro": 2 },
+        "All White Case": { "13/14": 1, "14 Pro": 1 },
+        "Lucky Girl Case": { "11": 1, "12": 2, "13/14": 2, "14 Pro": 2, "15 Pro": 2 },
+        "New York Case": { "11": 1, "12": 3, "13/14": 3, "14 Pro": 3, "15": 1, "15 Pro": 2, "15 Pro Max": 1, "16 Pro": 2, "16 Pro Max": 2 },
+        "Crystal Clear Case": { "11": 3, "12": 3, "12 Pro": 2, "13 Pro": 3, "15": 1, "15 Pro": 2, "15 Pro Max": 2 },
+        "Black Frame Case": { "11": 1, "12 Pro": 2, "13/14": 1, "13 Pro": 3, "14 Pro": 2, "15": 2, "15 Pro": 2, "15 Pro Max": 2, "16 Pro": 1, "16 Pro Max": 2 },
+        "The GOAT Case": { "11": 2, "12": 2, "12 Pro": 2, "13/14": 2, "13 Pro": 1, "14 Pro": 2, "15": 1, "15 Pro": 3, "15 Pro Max": 3, "16 Pro": 1, "16 Pro Max": 3 },
+        "Dolar Case": { "11": 3, "12": 2, "12 Pro": 3, "13/14": 3, "13 Pro": 2, "14 Pro": 3, "15": 1, "15 Pro": 3, "15 Pro Max": 1, "16 Pro": 2, "16 Pro Max": 2 },
+        "Protector Glitter (Cámara)": { "11": 3, "12": 3, "12 Pro": 3, "13/14": 2, "13 Pro": 3, "14 Pro": 3, "15": 2, "15 Pro": 3, "15 Pro Max": 3, "16 Pro": 3, "16 Pro Max": 3 }
+    };
+
+    const productos = [
+        { id: 1, nombre: "Soft Pink Case", precio: 5000, img: "funda_rosa.jpeg", esAcc: false },
+        { id: 2, nombre: "All White Case", precio: 5000, img: "Funda_Blanca.jpeg", esAcc: false },
+        { id: 3, nombre: "Lucky Girl Case", precio: 5000, img: "lucky_girl.jpeg", esAcc: false },
+        { id: 4, nombre: "New York Case", precio: 6000, img: "NY.jpeg", esAcc: false },
+        { id: 5, nombre: "Crystal Clear Case", precio: 6000, img: "Funda_Transparente.jpeg", esAcc: false },
+        { id: 6, nombre: "Black Frame Case", precio: 7500, img: "Funda_mag_safe.JPG", esAcc: false },
+        { id: 7, nombre: "The GOAT Case", precio: 7500, img: "Funda_messi.JPG", esAcc: false },
+        { id: 8, nombre: "Dolar Case", precio: 8000, img: "funda_dolar.JPG", esAcc: false },
+        { id: 9, nombre: "Protector Glitter (Cámara)", precio: 4500, img: "Protec_Camara.PNG", esAcc: false },
+        { id: 10, nombre: "Protector Silver Bow", precio: 6000, img: "Protec_Cable_bow.jpg", esAcc: true },
+        { id: 11, nombre: "Protector Yellow Sun", precio: 6000, img: "Protect_cable_sol.jpg", esAcc: true },
+        { id: 12, nombre: "Set 3 Piezas", precio: 10000, img: "set_3_piezas.JPEG", esAcc: true },
+        { id: 13, nombre: "Protector Pink Bow", precio: 7000, img: "Protec_Cable_bow_rosa.jpeg", esAcc: true }
+    ];
+
+    let carrito = [];
+
+    const grid = document.getElementById('lista-productos');
+    productos.forEach(p => {
+        let selectHtml = "";
+        if (!p.esAcc) {
+            const stock = stockData[p.nombre];
+            let options = "";
+            for (let m in stock) { if (stock[m] > 0) options += `<option value="${m}">${m}</option>`; }
+            selectHtml = `<label style="font-size:0.75em; color:#888;">MODELO IPHONE:</label><select id="mod-${p.id}">${options}</select>`;
+        } else {
+            selectHtml = `<div style="height: 52px;"></div>`; 
+        }
+        grid.innerHTML += `
+            <div class="producto-card">
+                <img src="${p.img}" onerror="this.src='https://via.placeholder.com/300x400?text=Cargar+Foto'">
+                <div>
+                    <h3>${p.nombre}</h3>
+                    <p><b>$${p.precio}</b></p>
+                    ${selectHtml}
+                    <button class="btn-add" onclick="agregar(${p.id})">Agregar</button>
+                </div>
+            </div>`;
+    });
+
+    function agregar(id) {
+        const p = productos.find(x => x.id === id);
+        const modSelect = document.getElementById(`mod-${id}`);
+        const mod = p.esAcc ? "Accesorio" : modSelect.value;
+        carrito.push({...p, modeloElegido: mod});
+        document.getElementById('carrito-btn').innerText = `🛒 Carrito (${carrito.length})`;
+        alert("¡Agregado!");
+    }
+
+    function mostrarFactura() {
+        if (carrito.length === 0) return alert("El carrito está vacío");
+        const lista = document.getElementById('items-lista');
+        const resumen = document.getElementById('resumen-texto');
+        lista.innerHTML = "";
+        let total = 0;
+        let textoMsg = "✨ PEDIDO TD ACCESORIOS ✨%0A---------------------------%0A";
+
+        carrito.forEach(item => {
+            lista.innerHTML += `
+                <div class="item-factura">
+                    <div><b>${item.nombre}</b><br><small>Modelo: ${item.modeloElegido}</small></div>
+                    <span>$${item.precio}</span>
+                </div>`;
+            total += item.precio;
+            textoMsg += `• ${item.nombre} (${item.modeloElegido})%0A`;
+        });
+
+        textoMsg += `---------------------------%0A💰 TOTAL A PAGAR: $${total}%0A%0A(Pego mi pedido para confirmar la compra)`;
+        
+        resumen.innerText = decodeURIComponent(textoMsg);
+        document.getElementById('total-monto').innerText = `Total: $${total}`;
+        document.getElementById('modal-factura').style.display = "block";
+    }
+
+    function cerrarFactura() { document.getElementById('modal-factura').style.display = "none"; }
+</script>
+</body>
+</html>
